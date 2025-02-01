@@ -10,18 +10,6 @@ export default function Contact() {
     subject: '',
     message: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSuccess(true);
-    setLoading(false);
-    setFormData({ name: '', email: '', subject: '', message: '' });
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -48,109 +36,83 @@ export default function Contact() {
             <h1 className="text-3xl sm:text-4xl font-bold text-white ml-4">Contact Us</h1>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold text-white">Get in Touch</h2>
-                <p className="text-white/90 leading-relaxed">
-                  Have questions or feedback? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center text-white">
-                  <Mail className="w-5 h-5 text-accent-yellow mr-3" />
-                  <span>support@bookmarkhub.com</span>
-                </div>
-                <div className="flex items-center text-white">
-                  <Phone className="w-5 h-5 text-accent-yellow mr-3" />
-                  <span>+1 (555) 123-4567</span>
-                </div>
-                <div className="flex items-center text-white">
-                  <MapPin className="w-5 h-5 text-accent-yellow mr-3" />
-                  <span>123 Bookmark Street, Web City, IN 12345</span>
-                </div>
-              </div>
+          <form
+            name="contact"
+            method="POST"
+            data-netlify="true"
+            className="space-y-4"
+          >
+            {/* Hidden Netlify Form Data */}
+            <input type="hidden" name="form-name" value="contact" />
+            
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-white mb-1">
+                Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
+                required
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4" name="contact" method="POST" data-netlify="true">
-            <input type="hidden" name="form-name" value="contact" />
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
-                  required
-                  disabled={loading}
-                />
-              </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-white mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
+                required
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
-                  required
-                  disabled={loading}
-                />
-              </div>
+            <div>
+              <label htmlFor="subject" className="block text-sm font-medium text-white mb-1">
+                Subject
+              </label>
+              <input
+                type="text"
+                id="subject"
+                name="subject"
+                value={formData.subject}
+                onChange={handleChange}
+                className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
+                required
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
-                  required
-                  disabled={loading}
-                />
-              </div>
+            <div>
+              <label htmlFor="message" className="block text-sm font-medium text-white mb-1">
+                Message
+              </label>
+              <textarea
+                id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                rows={4}
+                className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
+                required
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Message
-                </label>
-                <textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
-                  required
-                  disabled={loading}
-                />
-              </div>
-
-              {success && (
-                <div className="p-4 bg-primary/20 border border-primary/50 text-white rounded-lg text-sm">
-                  Thank you for your message! We'll get back to you soon.
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full px-4 py-2 bg-gradient-to-r from-accent-orange to-accent-yellow text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-yellow transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
-              >
-                <span>{loading ? 'Sending...' : 'Send Message'}</span>
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
-          </div>
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-gradient-to-r from-accent-orange to-accent-yellow text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-yellow transition-all duration-300 flex items-center justify-center space-x-2"
+            >
+              <span>Send Message</span>
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
         </div>
       </div>
     </main>
