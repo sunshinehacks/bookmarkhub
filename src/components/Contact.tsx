@@ -73,7 +73,8 @@ export default function Contact() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" name="contact" method="POST" data-netlify="true">
+            <input type="hidden" name="form-name" value="contact" />
               <div>
                 <label className="block text-sm font-medium text-white mb-1">
                   Name
