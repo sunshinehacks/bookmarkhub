@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ArrowLeft, Send, Mail, MessageSquare, Phone, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import emailjs from '@emailjs/browser';
 
 export default function Contact() {
   const navigate = useNavigate();
+  const form = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -12,15 +14,31 @@ export default function Contact() {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSuccess(true);
-    setLoading(false);
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    setError(null);
+
+    try {
+      if (!form.current) return;
+
+      await emailjs.sendForm(
+        'service_76theav', // Replace with your EmailJS service ID
+        'template_1xo50e1', // Replace with your EmailJS template ID
+        form.current,
+        'iBfIJ_kHmDoP-KeEp' // Replace with your EmailJS public key
+      );
+
+      setSuccess(true);
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (err: any) {
+      setError('Failed to send message. Please try again later.');
+      console.error('Email error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -73,8 +91,19 @@ export default function Contact() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4" name="contact" method="POST" data-netlify="true">
-            <input type="hidden" name="form-name" value="contact" />
+            <form ref={form} onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-4 bg-accent-orange/20 border border-accent-orange/50 text-white rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+              
+              {success && (
+                <div className="p-4 bg-primary/20 border border-primary/50 text-white rounded-lg text-sm">
+                  Thank you for your message! We'll get back to you soon.
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-white mb-1">
                   Name
@@ -134,12 +163,6 @@ export default function Contact() {
                   disabled={loading}
                 />
               </div>
-
-              {success && (
-                <div className="p-4 bg-primary/20 border border-primary/50 text-white rounded-lg text-sm">
-                  Thank you for your message! We'll get back to you soon.
-                </div>
-              )}
 
               <button
                 type="submit"
