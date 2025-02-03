@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
@@ -7,6 +7,14 @@ interface ValidationErrors {
   email?: string;
   password?: string;
   confirmPassword?: string;
+}
+
+interface PasswordCriteria {
+  length: boolean;
+  uppercase: boolean;
+  lowercase: boolean;
+  number: boolean;
+  special: boolean;
 }
 
 export default function Register() {
@@ -19,13 +27,37 @@ export default function Register() {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [passwordCriteria, setPasswordCriteria] = useState<PasswordCriteria>({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false
+  });
 
   const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) return 'Email is required';
+    if (email.includes('+')) return 'Email cannot contain the + character';
+    const emailRegex = /^[^\s@+]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return 'Please enter a valid email address';
     return '';
   };
+
+  const checkPasswordCriteria = (password: string) => {
+    setPasswordCriteria({
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[!@#$%^&*]/.test(password)
+    });
+  };
+
+  useEffect(() => {
+    if (password) {
+      checkPasswordCriteria(password);
+    }
+  }, [password]);
 
   const validatePassword = (password: string) => {
     if (!password) return 'Password is required';
@@ -87,19 +119,23 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        }
       });
 
       if (signUpError) throw signUpError;
 
+      if (data?.user?.identities?.length === 0) {
+        throw new Error('An account with this email already exists.');
+      }
+
       navigate('/settings', { 
         state: { 
-          message: 'Registration successful! Please check your email to verify your account.' 
+          message: 'Registration successful! You can now log in.' 
         }
       });
     } catch (err: any) {
@@ -108,6 +144,14 @@ export default function Register() {
       setLoading(false);
     }
   };
+
+  const ValidationIcon = ({ isValid }: { isValid: boolean }) => (
+    isValid ? (
+      <Check className="w-4 h-4 text-accent-yellow" />
+    ) : (
+      <X className="w-4 h-4 text-white" />
+    )
+  );
 
   return (
     <main className="flex-grow z-10 py-12">
@@ -145,8 +189,10 @@ export default function Register() {
                   }}
                   onBlur={() => handleBlur('email')}
                   className={`w-full bg-primary-dark/30 border ${
-                    touched.email && validationErrors.email
-                      ? 'border-accent-orange'
+                    touched.email
+                      ? validationErrors.email
+                        ? 'border-white'
+                        : 'border-accent-yellow'
                       : 'border-primary/50'
                   } rounded-lg pl-10 pr-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent-yellow focus:border-transparent transition-all duration-300`}
                   placeholder="Enter your email"
@@ -154,13 +200,15 @@ export default function Register() {
                   disabled={loading}
                 />
                 <Mail className={`absolute left-3 top-2.5 w-5 h-5 ${
-                  touched.email && validationErrors.email
-                    ? 'text-accent-orange'
+                  touched.email
+                    ? validationErrors.email
+                      ? 'text-white'
+                      : 'text-accent-yellow'
                     : 'text-white/70'
                 }`} />
               </div>
               {touched.email && validationErrors.email && (
-                <p className="mt-2 text-sm text-accent-orange">{validationErrors.email}</p>
+                <p className="mt-2 text-sm text-white">{validationErrors.email}</p>
               )}
             </div>
 
@@ -178,8 +226,10 @@ export default function Register() {
                   }}
                   onBlur={() => handleBlur('password')}
                   className={`w-full bg-primary-dark/30 border ${
-                    touched.password && validationErrors.password
-                      ? 'border-accent-orange'
+                    touched.password
+                      ? validationErrors.password
+                        ? 'border-white'
+                        : 'border-accent-yellow'
                       : 'border-primary/50'
                   } rounded-lg pl-10 pr-12 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent-yellow focus:border-transparent transition-all duration-300`}
                   placeholder="Create a password"
@@ -187,8 +237,10 @@ export default function Register() {
                   disabled={loading}
                 />
                 <Lock className={`absolute left-3 top-2.5 w-5 h-5 ${
-                  touched.password && validationErrors.password
-                    ? 'text-accent-orange'
+                  touched.password
+                    ? validationErrors.password
+                      ? 'text-white'
+                      : 'text-accent-yellow'
                     : 'text-white/70'
                 }`} />
                 <button
@@ -200,9 +252,38 @@ export default function Register() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {touched.password && validationErrors.password && (
-                <p className="mt-2 text-sm text-accent-orange">{validationErrors.password}</p>
-              )}
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center space-x-2 text-sm">
+                  <ValidationIcon isValid={passwordCriteria.length} />
+                  <span className={passwordCriteria.length ? 'text-accent-yellow' : 'text-white'}>
+                    At least 8 characters
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <ValidationIcon isValid={passwordCriteria.uppercase} />
+                  <span className={passwordCriteria.uppercase ? 'text-accent-yellow' : 'text-white'}>
+                    One uppercase letter
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <ValidationIcon isValid={passwordCriteria.lowercase} />
+                  <span className={passwordCriteria.lowercase ? 'text-accent-yellow' : 'text-white'}>
+                    One lowercase letter
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <ValidationIcon isValid={passwordCriteria.number} />
+                  <span className={passwordCriteria.number ? 'text-accent-yellow' : 'text-white'}>
+                    One number
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <ValidationIcon isValid={passwordCriteria.special} />
+                  <span className={passwordCriteria.special ? 'text-accent-yellow' : 'text-white'}>
+                    One special character (!@#$%^&*)
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -219,8 +300,10 @@ export default function Register() {
                   }}
                   onBlur={() => handleBlur('confirmPassword')}
                   className={`w-full bg-primary-dark/30 border ${
-                    touched.confirmPassword && validationErrors.confirmPassword
-                      ? 'border-accent-orange'
+                    touched.confirmPassword
+                      ? validationErrors.confirmPassword
+                        ? 'border-white'
+                        : 'border-accent-yellow'
                       : 'border-primary/50'
                   } rounded-lg pl-10 pr-12 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent-yellow focus:border-transparent transition-all duration-300`}
                   placeholder="Confirm your password"
@@ -228,13 +311,15 @@ export default function Register() {
                   disabled={loading}
                 />
                 <Lock className={`absolute left-3 top-2.5 w-5 h-5 ${
-                  touched.confirmPassword && validationErrors.confirmPassword
-                    ? 'text-accent-orange'
+                  touched.confirmPassword
+                    ? validationErrors.confirmPassword
+                      ? 'text-white'
+                      : 'text-accent-yellow'
                     : 'text-white/70'
                 }`} />
               </div>
               {touched.confirmPassword && validationErrors.confirmPassword && (
-                <p className="mt-2 text-sm text-accent-orange">{validationErrors.confirmPassword}</p>
+                <p className="mt-2 text-sm text-white">{validationErrors.confirmPassword}</p>
               )}
             </div>
 
