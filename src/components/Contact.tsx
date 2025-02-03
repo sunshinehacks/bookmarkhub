@@ -1,7 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, Send, Mail, MessageSquare, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, Send, Mail, MessageSquare, Phone, MapPin, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
+
+interface ValidationErrors {
+  name?: string;
+  email?: string;
+  subject?: string;
+  message?: string;
+}
 
 export default function Contact() {
   const navigate = useNavigate();
@@ -15,24 +22,104 @@ export default function Contact() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const validateName = (name: string) => {
+    if (!name.trim()) return 'Name is required';
+    if (name.length < 2) return 'Name must be at least 2 characters long';
+    if (name.length > 50) return 'Name must be less than 50 characters';
+    if (!/^[a-zA-Z\s'-]+$/.test(name)) return 'Name can only contain letters, spaces, hyphens, and apostrophes';
+    return '';
+  };
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) return 'Email is required';
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  const validateSubject = (subject: string) => {
+    if (!subject.trim()) return 'Subject is required';
+    if (subject.length < 3) return 'Subject must be at least 3 characters long';
+    if (subject.length > 100) return 'Subject must be less than 100 characters';
+    return '';
+  };
+
+  const validateMessage = (message: string) => {
+    if (!message.trim()) return 'Message is required';
+    if (message.length < 10) return 'Message must be at least 10 characters long';
+    if (message.length > 1000) return 'Message must be less than 1000 characters';
+    return '';
+  };
+
+  const handleBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    validateField(field);
+  };
+
+  const validateField = (field: string) => {
+    let error = '';
+    switch (field) {
+      case 'name':
+        error = validateName(formData.name);
+        break;
+      case 'email':
+        error = validateEmail(formData.email);
+        break;
+      case 'subject':
+        error = validateSubject(formData.subject);
+        break;
+      case 'message':
+        error = validateMessage(formData.message);
+        break;
+    }
+    setValidationErrors(prev => ({ ...prev, [field]: error }));
+    return error;
+  };
+
+  const validateForm = () => {
+    const errors: ValidationErrors = {
+      name: validateName(formData.name),
+      email: validateEmail(formData.email),
+      subject: validateSubject(formData.subject),
+      message: validateMessage(formData.message)
+    };
+    setValidationErrors(errors);
+    return !Object.values(errors).some(error => error);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setTouched({
+      name: true,
+      email: true,
+      subject: true,
+      message: true
+    });
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
 
     try {
       if (!form.current) return;
 
       await emailjs.sendForm(
-        'service_76theav', // Replace with your EmailJS service ID
-        'template_1xo50e1', // Replace with your EmailJS template ID
+        'service_76theav',
+        'template_1xo50e1',
         form.current,
-        'iBfIJ_kHmDoP-KeEp' // Replace with your EmailJS public key
+        'iBfIJ_kHmDoP-KeEp'
       );
 
       setSuccess(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
+      setValidationErrors({});
+      setTouched({});
     } catch (err: any) {
       setError('Failed to send message. Please try again later.');
       console.error('Email error:', err);
@@ -47,6 +134,9 @@ export default function Contact() {
       ...prev,
       [name]: value
     }));
+    if (touched[name]) {
+      validateField(name);
+    }
   };
 
   return (
@@ -93,8 +183,9 @@ export default function Contact() {
 
             <form ref={form} onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="p-4 bg-accent-orange/20 border border-accent-orange/50 text-white rounded-lg text-sm">
-                  {error}
+                <div className="p-4 bg-accent-orange/20 border border-accent-orange/50 text-white rounded-lg text-sm flex items-start">
+                  <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
               
@@ -113,10 +204,18 @@ export default function Contact() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
+                  onBlur={() => handleBlur('name')}
+                  className={`w-full bg-primary-dark/30 border ${
+                    touched.name && validationErrors.name
+                      ? 'border-accent-orange'
+                      : 'border-primary/50'
+                  } rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300`}
                   required
                   disabled={loading}
                 />
+                {touched.name && validationErrors.name && (
+                  <p className="mt-2 text-sm text-accent-orange">{validationErrors.name}</p>
+                )}
               </div>
 
               <div>
@@ -128,10 +227,18 @@ export default function Contact() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
+                  onBlur={() => handleBlur('email')}
+                  className={`w-full bg-primary-dark/30 border ${
+                    touched.email && validationErrors.email
+                      ? 'border-accent-orange'
+                      : 'border-primary/50'
+                  } rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300`}
                   required
                   disabled={loading}
                 />
+                {touched.email && validationErrors.email && (
+                  <p className="mt-2 text-sm text-accent-orange">{validationErrors.email}</p>
+                )}
               </div>
 
               <div>
@@ -143,10 +250,18 @@ export default function Contact() {
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
+                  onBlur={() => handleBlur('subject')}
+                  className={`w-full bg-primary-dark/30 border ${
+                    touched.subject && validationErrors.subject
+                      ? 'border-accent-orange'
+                      : 'border-primary/50'
+                  } rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300`}
                   required
                   disabled={loading}
                 />
+                {touched.subject && validationErrors.subject && (
+                  <p className="mt-2 text-sm text-accent-orange">{validationErrors.subject}</p>
+                )}
               </div>
 
               <div>
@@ -157,11 +272,19 @@ export default function Contact() {
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
+                  onBlur={() => handleBlur('message')}
                   rows={4}
-                  className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
+                  className={`w-full bg-primary-dark/30 border ${
+                    touched.message && validationErrors.message
+                      ? 'border-accent-orange'
+                      : 'border-primary/50'
+                  } rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300`}
                   required
                   disabled={loading}
                 />
+                {touched.message && validationErrors.message && (
+                  <p className="mt-2 text-sm text-accent-orange">{validationErrors.message}</p>
+                )}
               </div>
 
               <button
