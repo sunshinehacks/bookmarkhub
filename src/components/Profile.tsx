@@ -19,6 +19,7 @@ export default function Profile({ bookmarks }: ProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempProfile, setTempProfile] = useState(profile);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -29,6 +30,19 @@ export default function Profile({ bookmarks }: ProfileProps) {
   const handleSave = async () => {
     if (!tempProfile) return;
 
+    // Validate age
+    if (tempProfile.age !== null) {
+      if (tempProfile.age < 0) {
+        setValidationError('Age cannot be negative');
+        return;
+      }
+      if (tempProfile.age > 100) {
+        setValidationError('Age cannot be greater than 100');
+        return;
+      }
+    }
+
+    setValidationError(null);
     const success = await updateProfile({
       name: tempProfile.name,
       age: tempProfile.age,
@@ -201,12 +215,25 @@ export default function Profile({ bookmarks }: ProfileProps) {
                 <div>
                   <label className="block text-sm font-medium text-white mb-1">Age</label>
                   {isEditing ? (
-                    <input
-                      type="number"
-                      value={tempProfile.age || ''}
-                      onChange={(e) => setTempProfile({ ...tempProfile, age: parseInt(e.target.value) || null })}
-                      className="w-full bg-primary-dark/30 border border-primary/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300"
-                    />
+                    <div>
+                      <input
+                        type="number"
+                        value={tempProfile.age || ''}
+                        onChange={(e) => {
+                          const value = e.target.value ? parseInt(e.target.value) : null;
+                          setTempProfile({ ...tempProfile, age: value });
+                          setValidationError(null);
+                        }}
+                        min="0"
+                        max="100"
+                        className={`w-full bg-primary-dark/30 border ${
+                          validationError ? 'border-accent-orange' : 'border-primary/50'
+                        } rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-yellow transition-all duration-300`}
+                      />
+                      {validationError && (
+                        <p className="mt-2 text-sm text-accent-orange">{validationError}</p>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-white">{profile.age ? `${profile.age} years old` : 'Not specified'}</p>
                   )}
@@ -231,6 +258,7 @@ export default function Profile({ bookmarks }: ProfileProps) {
                         setTempProfile(profile);
                         setIsEditing(false);
                         setUploadError(null);
+                        setValidationError(null);
                       }}
                       className="px-4 py-2 border border-primary/50 rounded-lg text-white hover:bg-primary/20 focus:outline-none transition-all duration-300"
                     >
